@@ -1,0 +1,11 @@
+Package: GigaPRS
+Title: GigaPRS Step 2
+Version: 0.0.0.9000
+Authors@R: person("Doug", "Speed", , "doug@qgg.au.dk", role = c("aut", "cre"))
+Description: R implementation of GigaPRS Step 2, that computes PRS given SNP effect size estimates and PLINK 1 genotype data (see www.dougspeed.com/giga-prs for more details)
+License: GPL-3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+URL: https://github.com/dougspeed/GigaPRS
+BugReports: https://github.com/dougspeed/GigaPRS/issues
