@@ -8,7 +8,7 @@
 
 ###############################################
 
-#' @title GigaPRS Step 2
+#' @title GigaPRS Step 2 test edit
 #
 #' @description This function uses genotypes and SNP effect sizes to compute PRS for target individuals, possibly taking into account inferred ancestry
 #
