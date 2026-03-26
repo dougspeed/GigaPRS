@@ -46,21 +46,24 @@ cat(paste0("Start at ",start_time,"\n\n"))
 ################
 #check arguments
 
+if(!is.null(bedstem)&&!is.null(pgenstem))
+{return(paste0("Error, can not use both the arguments bedstem and pgenstem"))}
+
 if(is.null(bedstem)&&is.null(pgenstem))
 {return(paste0("Error, you must use either the argument bedstem or pgenstem to provide the stem of the genotype data, stored in either PLINK 1 or PLINK 2 format (e.g., if the genotypes are stored in PLINK 1 format in file.bed, file.bim and file.fam, use bedstem=\"file\""))}
 
 if(!is.null(bedstem))
 {
-bedfile=paste0(bedstem,".bed")
-bimfile=paste0(bedstem,".bim")
-famfile=paste0(bedstem,".fam")
+genfile=paste0(bedstem,".bed")
+varfile=paste0(bedstem,".bim")
+sampfile=paste0(bedstem,".fam")
 
-if(file.exists(bedfile)==FALSE)
-{return(paste0("Error, unable to find the bedfile ",bedfile, ", please check the argument bedstem"))}
-if(file.exists(bimfile)==FALSE)
-{return(paste0("Error, unable to find the bimfile ",bimfile, ", please check the argument bedstem"))}
-if(file.exists(famfile)==FALSE)
-{return(paste0("Error, unable to find the famfile ",famfile, ", please check the argument bedstem"))}
+if(file.exists(genfile)==FALSE)
+{return(paste0("Error, unable to find the bedfile ",genfile, ", please check the argument bedstem"))}
+if(file.exists(varfile)==FALSE)
+{return(paste0("Error, unable to find the bimfile ",varfile, ", please check the argument bedstem"))}
+if(file.exists(sampfile)==FALSE)
+{return(paste0("Error, unable to find the famfile ",sampfile, ", please check the argument bedstem"))}
 }
 
 if(!is.null(pgenstem))
@@ -70,16 +73,16 @@ if(system.file(package="pgenlibr")=="")
 
 library("pgenlibr")
 
-pgenfile=paste0(pgenstem,".pgen")
-pvarfile=paste0(pgenstem,".pvar")
-psamfile=paste0(pgenstem,".psam")
+genfile=paste0(pgenstem,".pgen")
+varfile=paste0(pgenstem,".pvar")
+sampfile=paste0(pgenstem,".psam")
 
-if(file.exists(pgenfile)==FALSE)
-{return(paste0("Error, unable to find the pgenfile ",pgenfile, ", please check the argument pgenstem"))}
-if(file.exists(pvarfile)==FALSE)
-{return(paste0("Error, unable to find the pvarfile ",pvarfile, ", please check the argument pgenstem"))}
-if(file.exists(psamfile)==FALSE)
-{return(paste0("Error, unable to find the psamfile ",psamfile, ", please check the argument pgenstem"))}
+if(file.exists(genfile)==FALSE)
+{return(paste0("Error, unable to find the pgenfile ",genfile, ", please check the argument pgenstem"))}
+if(file.exists(varfile)==FALSE)
+{return(paste0("Error, unable to find the pvarfile ",varfile, ", please check the argument pgenstem"))}
+if(file.exists(sampfile)==FALSE)
+{return(paste0("Error, unable to find the psamfile ",sampfile, ", please check the argument pgenstem"))}
 }
 
 if(is.null(scores)&&is.null(multiscores))
@@ -108,8 +111,8 @@ if(saveCounts!=TRUE&&saveCounts!=FALSE)
 #set multiflag and scorefile
 
 multiflag=is.null(scores)
-if(multiflag==FALSE){scorefile=scores}
-else{scorefile=multiscores}
+if(multiflag==FALSE){scorefile=scores}else
+{scorefile=multiscores}
 
 if(multiflag==FALSE)    #read scorefile and set num_scores
 {
@@ -216,26 +219,17 @@ if(length(red)<nrow(extract))
 preds=preds[red]
 al1=al1[red]
 al2=al2[red]
-if(multiflag==FALSE){centres=centres[red]}
-else{centres=matrix(centres[red,],ncol=num_scores)}
+if(multiflag==FALSE){centres=centres[red]}else
+{centres=matrix(centres[red,],ncol=num_scores)}
 effects=matrix(effects[red,],ncol=num_scores)
 }
 
 
 ################
-#read famfile/samfile and set num_samples
+#read sampfile and set num_samples
 
-if(!is.null(bedstem))
-{
-cat(paste0("Reading sample details from ",famfile,"\n"))
-fam=read.table(famfile,head=FALSE)
-}
-
-if(!is.null(pgenstem))
-{
-cat(paste0("Reading sample details from ",psamfile,"\n"))
-fam=read.table(psamfile,head=FALSE)
-}
+cat(paste0("Reading sample details from ",sampfile,"\n"))
+fam=read.table(sampfile,head=FALSE)
 
 num_samples=nrow(fam)
 cat(paste0("In total, there are ",num_samples," samples\n\n"))
@@ -245,8 +239,7 @@ cat(paste0("In total, there are ",num_samples," samples\n\n"))
 #which samples are we using
 
 if(is.null(keepfile))
-{use_samples=1:num_samples}
-else
+{use_samples=1:num_samples}else
 {
 cat(paste0("Reading keep samples from ",keepfile,"\n"))
 keep=read.table(keepfile,head=FALSE)
@@ -256,13 +249,13 @@ if(ncol(keep)<2)
 use_samples=which(paste0(fam[,1],"___",fam[,2]) %in% paste0(keep[,1],"___",keep[,2]))
 
 if(length(use_samples)==0)
-{return(paste0("Error, none of the ", nrow(keep), " samples in ", keepfile," are also in ",famfile))}
+{return(paste0("Error, none of the ", nrow(keep), " samples in ", keepfile," are also in ",sampfile))}
 
 if(length(use_samples)==nrow(keep))
-{cat(paste0("All ", nrow(keep)," samples are in ", famfile,"\n\n"))}
+{cat(paste0("All ", nrow(keep)," samples are in ", sampfile,"\n\n"))}
 
 if(length(use_samples)<nrow(keep))
-{cat(paste0("Warning, only ", length(use_samples)," of the ", nrow(keep)," samples in ", keepfile," are also in ",famfile,"\n\n"))}
+{cat(paste0("Warning, only ", length(use_samples)," of the ", nrow(keep)," samples in ", keepfile," are also in ",sampfile,"\n\n"))}
 }
 
 
@@ -284,8 +277,8 @@ resps[found1]=as.numeric(phens[found2,3])
 
 if(length(overlap)==0)
 {
-if(is.null(keepfile)){return(paste0("Error, none of the ", nrow(phens), " samples in ", phenofile," are also in ",famfile))}
-else{return(paste0("Error, none of the ", nrow(phens), " samples in ", phenofile," are also in ",keepfile))}
+if(is.null(keepfile)){return(paste0("Error, none of the ", nrow(phens), " samples in ", phenofile," are also in ",sampfile))}else
+{return(paste0("Error, none of the ", nrow(phens), " samples in ", phenofile," are also in ",keepfile))}
 }
 
 if(length(overlap)==length(use_samples))
@@ -297,18 +290,18 @@ if(length(overlap)<length(use_samples))
 
 
 ################
-#read bimfile/pvarfile and set num_snps
+#read varfile and set num_snps
 
 if(!is.null(bedstem))
 {
-cat(paste0("Reading predictor details from ",bimfile,"\n"))
-bim=read.table(bimfile,head=FALSE)
+cat(paste0("Reading predictor details from ",varfile,"\n"))
+bim=read.table(varfile,head=FALSE)
 }
 
 if(!is.null(pgenstem))
 {
-cat(paste0("Reading predictor details from ",pvarfile,"\n"))
-bim=read.table(pvarfile,head=FALSE)[,c(1,3,2,2,4,5)]
+cat(paste0("Reading predictor details from ",varfile,"\n"))
+bim=read.table(varfile,head=FALSE)[,c(1,3,2,2,5,4)]
 }
 
 num_snps=nrow(bim)
@@ -384,13 +377,13 @@ effects[flip,]=-effects[flip,]
 
 if(!is.null(bedstem))
 {
-filecon=file(bedfile, "rb")
+filecon=file(genfile, "rb")
 header=readBin(filecon, what = "raw", n = 3)
 if(header[1]!=as.raw(0x6C)||header[2]!=as.raw(0x1B))
-{return(paste0("Error, reading ", bedfile, "; incorrect magic numbers"))}
+{return(paste0("Error, reading ", genfile, "; incorrect magic numbers"))}
 
 if(header[3]!=as.raw(0x01))
-{return(paste0("Error, reading ", bedfile, "; not SNP-major mode (unsupported)"))}
+{return(paste0("Error, reading ", genfile, "; not SNP-major mode (unsupported)"))}
 
 byte_indexes=ceiling(use_samples/4)
 byte_shifts=2*(use_samples-1)%%4
@@ -398,9 +391,9 @@ byte_shifts=2*(use_samples-1)%%4
 
 if(!is.null(pgenstem))
 {
-pvar=NewPvar(pvarfile)
-pgen=NewPgen(pgenfile, pvar=pvar)
-gens=IntBuf(pgen)
+pvar=NewPvar(varfile)
+pgen=NewPgen(genfile, pvar=pvar)
+buffer=IntBuf(pgen)
 }
 
 
@@ -446,9 +439,11 @@ location=use_snps[j]+1
 bits=as.integer(raw_bytes[byte_indexes])
 gens=codes[1+bitwAnd(bitwShiftR(bits, byte_shifts), 3)]
 }
+
 if(!is.null(pgenstem))
 {
-ReadHardcalls(pgen, gens, use_snps[j], allele_num=2)
+ReadHardcalls(pgen, buffer, use_snps[j], allele_num=2)
+gens=buffer[use_samples]
 }
 
 #find non-missing
