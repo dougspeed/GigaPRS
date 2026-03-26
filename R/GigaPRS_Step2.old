@@ -35,7 +35,7 @@
 #' 
 #' #Example 2 - Run the function based on the on-screen instructions from Example 1
 #' format_sumstats(gwasfile=ex_gwas_file, outstem="ex_out", NameCol="Predictor", A1Col="A1", A2Col="A2", EffectCol="Beta", SECol="SE", nCol="n", FreqCol="A1Freq")
-GigaPRS_Step2=function(bedstem=NULL, pgenstem=NULL, scores=NULL, multiscores=NULL,outstem=NULL,allowMissing=FALSE,extractfile=NULL,keepfile=NULL,phenofile=NULL,saveCounts=FALSE)
+GigaPRS_Step2=function(bedstem=NULL, scores=NULL, multiscores=NULL,outstem=NULL,allowMissing=FALSE,extractfile=NULL,keepfile=NULL,phenofile=NULL,saveCounts=FALSE)
 {
 ################
 #get start time
@@ -46,11 +46,9 @@ cat(paste0("Start at ",start_time,"\n\n"))
 ################
 #check arguments
 
-if(is.null(bedstem)&&is.null(pgenstem))
-{return(paste0("Error, you must use either the argument bedstem or pgenstem to provide the stem of the genotype data, stored in either PLINK 1 or PLINK 2 format (e.g., if the genotypes are stored in PLINK 1 format in file.bed, file.bim and file.fam, use bedstem=\"file\""))}
+if(is.null(bedstem))
+{return(paste0("Error, you must use the argument bedstem to provide the stem of the genotype data, stored in PLINK 1 binary format (e.g., if the genotypes are stored in file.bed, file.bim and file.fam, use bedstem=\"file\""))}
 
-if(!is.null(bedstem))
-{
 bedfile=paste0(bedstem,".bed")
 bimfile=paste0(bedstem,".bim")
 famfile=paste0(bedstem,".fam")
@@ -61,26 +59,6 @@ if(file.exists(bimfile)==FALSE)
 {return(paste0("Error, unable to find the bimfile ",bimfile, ", please check the argument bedstem"))}
 if(file.exists(famfile)==FALSE)
 {return(paste0("Error, unable to find the famfile ",famfile, ", please check the argument bedstem"))}
-}
-
-if(!is.null(pgenstem))
-{
-if(system.file(package="pgenlibr")=="")
-{return(paste0("Error, please first install the R library pgenlibr by running install.packages(\"pgenlibr\") (if copying this command, you should remove the backslashes manually)"))}
-
-library("pgenlibr")
-
-pgenfile=paste0(pgenstem,".pgen")
-pvarfile=paste0(pgenstem,".pvar")
-psamfile=paste0(pgenstem,".psam")
-
-if(file.exists(pgenfile)==FALSE)
-{return(paste0("Error, unable to find the pgenfile ",pgenfile, ", please check the argument pgenstem"))}
-if(file.exists(pvarfile)==FALSE)
-{return(paste0("Error, unable to find the pvarfile ",pvarfile, ", please check the argument pgenstem"))}
-if(file.exists(psamfile)==FALSE)
-{return(paste0("Error, unable to find the psamfile ",psamfile, ", please check the argument pgenstem"))}
-}
 
 if(is.null(scores)&&is.null(multiscores))
 {return(paste0("Error, you must use either the argument scores or the argument multiscores to provide SNP effect sizes from GigaPRS Step 1 (use scores if you ran Step 1 with one focal ancestry, and multiscores if you ran Step 1 with multiple focal ancestries)"))}
@@ -223,20 +201,10 @@ effects=matrix(effects[red,],ncol=num_scores)
 
 
 ################
-#read famfile/samfile and set num_samples
+#read famfile and set num_samples
 
-if(!is.null(bedstem))
-{
 cat(paste0("Reading sample details from ",famfile,"\n"))
 fam=read.table(famfile,head=FALSE)
-}
-
-if(!is.null(pgenstem))
-{
-cat(paste0("Reading sample details from ",psamfile,"\n"))
-fam=read.table(psamfile,head=FALSE)
-}
-
 num_samples=nrow(fam)
 cat(paste0("In total, there are ",num_samples," samples\n\n"))
 
@@ -297,20 +265,10 @@ if(length(overlap)<length(use_samples))
 
 
 ################
-#read bimfile/pvarfile and set num_snps
+#read bimfile and set num_snps
 
-if(!is.null(bedstem))
-{
 cat(paste0("Reading predictor details from ",bimfile,"\n"))
 bim=read.table(bimfile,head=FALSE)
-}
-
-if(!is.null(pgenstem))
-{
-cat(paste0("Reading predictor details from ",pvarfile,"\n"))
-bim=read.table(pvarfile,head=FALSE)[,c(1,3,2,2,4,5)]
-}
-
 num_snps=nrow(bim)
 cat(paste0("In total, there are ",num_snps," predictors\n\n"))
 
@@ -380,10 +338,8 @@ effects[flip,]=-effects[flip,]
 }
 
 ################
-#open genotypes file and check headers, get some indexes / allocate buffer
+#open bedfile and check headers
 
-if(!is.null(bedstem))
-{
 filecon=file(bedfile, "rb")
 header=readBin(filecon, what = "raw", n = 3)
 if(header[1]!=as.raw(0x6C)||header[2]!=as.raw(0x1B))
@@ -392,16 +348,11 @@ if(header[1]!=as.raw(0x6C)||header[2]!=as.raw(0x1B))
 if(header[3]!=as.raw(0x01))
 {return(paste0("Error, reading ", bedfile, "; not SNP-major mode (unsupported)"))}
 
+
+################
+#get some indexes
 byte_indexes=ceiling(use_samples/4)
 byte_shifts=2*(use_samples-1)%%4
-}
-
-if(!is.null(pgenstem))
-{
-pvar=NewPvar(pvarfile)
-pgen=NewPgen(pgenfile, pvar=pvar)
-gens=IntBuf(pgen)
-}
 
 
 ################
@@ -430,8 +381,6 @@ for(j in 1:num_snps_use)
 if(j%%50000==1)
 {cat(paste0("Processing SNP ", j, " out of ", num_snps_use,"\n"))}
 
-if(!is.null(bedstem))
-{
 if(location!=use_snps[j]) #get to location of next snp
 {
 offset=3+(use_snps[j]-1)*bytes_per_snp
@@ -445,11 +394,6 @@ location=use_snps[j]+1
 #convert to 0, 1, 2 and NA for extract individuals we are using
 bits=as.integer(raw_bytes[byte_indexes])
 gens=codes[1+bitwAnd(bitwShiftR(bits, byte_shifts), 3)]
-}
-if(!is.null(pgenstem))
-{
-ReadHardcalls(pgen, gens, use_snps[j], allele_num=2)
-}
 
 #find non-missing
 nonmiss=!is.na(gens)
@@ -489,19 +433,11 @@ wcount=wcount+1
 if(wcount>5){cat(paste0("In total, there were ", wcount, "trivial,SNPs\n"))}
 cat(paste("\n"))
 
-################
-#close genotypes file
-
-if(!is.null(bedstem))
-{close(filecon)}
-if(!is.null(pgenstem))
-{
-ClosePvar(pvar)
-ClosePgen(pgen)
-}
 
 ################
-#subtract means from guesses
+#shut file and subtract means from guesses
+
+close(filecon)
 
 if(multiflag==FALSE)    #only one set of means and no missing values
 {

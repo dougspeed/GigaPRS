@@ -6,6 +6,7 @@
 \usage{
 GigaPRS_Step2(
   bedstem = NULL,
+  pgenstem = NULL,
   scores = NULL,
   multiscores = NULL,
   outstem = NULL,
